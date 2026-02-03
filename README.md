@@ -1,4 +1,4 @@
-# Risk Officer Skill for OpenClaw
+# RiskOfficer Skill for OpenClaw
 
 Manage your investment portfolios, calculate risk metrics (VaR, Monte Carlo, Stress Tests), and optimize allocations using Risk Parity or Calmar Ratio — all through natural language chat.
 
@@ -14,7 +14,7 @@ Manage your investment portfolios, calculate risk metrics (VaR, Monte Carlo, Str
 
 ### 1. Get your API Token
 
-1. Open Risk Officer app on iOS
+1. Open RiskOfficer app on iOS
 2. Go to Settings → API Keys
 3. Create new token for "OpenClaw"
 4. Copy the token (starts with `ro_pat_...`)
@@ -75,7 +75,7 @@ Some features require Quant subscription:
 
 VaR calculation is **free** for all users.
 
-Subscribe in Risk Officer iOS app → Settings → Subscription.
+Subscribe in RiskOfficer iOS app → Settings → Subscription.
 
 ## Support
 

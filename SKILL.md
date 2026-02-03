@@ -4,13 +4,13 @@ description: Manage investment portfolios, calculate risk metrics (VaR, Monte Ca
 metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
 ---
 
-## Risk Officer Portfolio Management
+## RiskOfficer Portfolio Management
 
-This skill connects to Risk Officer API to manage investment portfolios and calculate risks.
+This skill connects to RiskOfficer API to manage investment portfolios and calculate risks.
 
 ### Setup
 
-1. Open Risk Officer app → Settings → API Keys
+1. Open RiskOfficer app → Settings → API Keys
 2. Create new token for "OpenClaw"
 3. Set environment variable: `RISK_OFFICER_TOKEN=ro_pat_...`
 
@@ -199,7 +199,7 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/proxy/broker/tink
 
 If response is 400 with `missing_api_key`, broker is not connected. Explain how to connect:
 1. Get API token from https://www.tbank.ru/invest/settings/api/
-2. Open Risk Officer app → Settings → Brokers → Connect Tinkoff
+2. Open RiskOfficer app → Settings → Brokers → Connect Tinkoff
 3. Paste token and connect
 
 ---
@@ -249,7 +249,7 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/monte-carlo" \
 
 Poll: `GET /api/v1/risk/monte-carlo/{simulation_id}`
 
-If 403 `subscription_required`: explain user needs Quant subscription, available in Risk Officer iOS app.
+If 403 `subscription_required`: explain user needs Quant subscription, available in RiskOfficer iOS app.
 
 #### Run Stress Test (REQUIRES QUANT SUBSCRIPTION)
 When user asks for stress test:
@@ -335,7 +335,7 @@ curl -s "https://api.riskofficer.tech/api/v1/subscription/status" \
 
 If `has_subscription: false` and user requests premium feature, explain:
 - Monte Carlo, Stress Test, Optimization require Quant subscription
-- Available in Risk Officer iOS app → Settings → Subscription
+- Available in RiskOfficer iOS app → Settings → Subscription
 - Offer free alternative (VaR calculation)
 
 ---
@@ -375,7 +375,7 @@ VaR, Monte Carlo, Stress Test, and Optimization are **asynchronous**.
 
 3. **Subscription:** Monte Carlo, Stress Test, and Optimization require Quant subscription. VaR is FREE.
 
-4. **Broker Integration:** User must connect broker in Risk Officer app first. Cannot connect via chat (security).
+4. **Broker Integration:** User must connect broker in RiskOfficer app first. Cannot connect via chat (security).
 
 5. **Confirmations:** Before applying optimizations or making significant portfolio changes, always show what will change and ask for confirmation.
 
