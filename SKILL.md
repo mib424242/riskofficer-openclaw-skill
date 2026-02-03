@@ -232,7 +232,7 @@ curl -s "https://api.riskofficer.tech/api/v1/risk/calculation/{calculation_id}" 
 
 Wait until `status` is `done`, then present results.
 
-#### Run Monte Carlo (REQUIRES QUANT SUBSCRIPTION)
+#### Run Monte Carlo (QUANT - currently free for all users)
 When user asks for Monte Carlo simulation:
 
 ```bash
@@ -249,9 +249,7 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/monte-carlo" \
 
 Poll: `GET /api/v1/risk/monte-carlo/{simulation_id}`
 
-If 403 `subscription_required`: explain user needs Quant subscription, available in RiskOfficer iOS app.
-
-#### Run Stress Test (REQUIRES QUANT SUBSCRIPTION)
+#### Run Stress Test (QUANT - currently free for all users)
 When user asks for stress test:
 
 First, get available crises:
@@ -275,7 +273,7 @@ Poll: `GET /api/v1/risk/stress-test/{stress_test_id}`
 
 ---
 
-### Portfolio Optimization (REQUIRES QUANT SUBSCRIPTION)
+### Portfolio Optimization (QUANT - currently free for all users)
 
 #### Risk Parity Optimization
 When user asks to optimize portfolio or balance risks:
@@ -325,6 +323,8 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/optimizations/{op
 
 ### Subscription Status
 
+> **Note:** Quant subscription is currently **FREE for all users**. All features work without payment.
+
 #### Check Subscription
 When you need to check if user has Quant subscription:
 
@@ -333,10 +333,7 @@ curl -s "https://api.riskofficer.tech/api/v1/subscription/status" \
   -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
 ```
 
-If `has_subscription: false` and user requests premium feature, explain:
-- Monte Carlo, Stress Test, Optimization require Quant subscription
-- Available in RiskOfficer iOS app → Settings → Subscription
-- Offer free alternative (VaR calculation)
+Currently all users have `has_subscription: true` (free tier enabled).
 
 ---
 
@@ -373,7 +370,7 @@ VaR, Monte Carlo, Stress Test, and Optimization are **asynchronous**.
 
 2. **Aggregated Portfolio:** The aggregated portfolio CAN contain assets in different currencies - they are automatically converted to base currency (RUB or USD) using CBR rates.
 
-3. **Subscription:** Monte Carlo, Stress Test, and Optimization require Quant subscription. VaR is FREE.
+3. **Subscription:** Monte Carlo, Stress Test, and Optimization are Quant features (currently free for all users). VaR is always FREE.
 
 4. **Broker Integration:** User must connect broker in RiskOfficer app first. Cannot connect via chat (security).
 
@@ -383,7 +380,7 @@ VaR, Monte Carlo, Stress Test, and Optimization are **asynchronous**.
 
 7. **Error Handling:**
    - 401 Unauthorized → Token invalid or expired, user needs to recreate
-   - 403 subscription_required → Need Quant subscription
+   - 403 subscription_required → Need Quant subscription (currently free for all)
    - 400 missing_api_key → Broker not connected
    - 400 currency_mismatch → Mixed currencies
 
@@ -421,8 +418,8 @@ User: "Add Apple to my portfolio"
 → Check portfolio currency (RUB) vs AAPL currency (USD)
 → Explain cannot mix, suggest creating separate USD portfolio
 
-### User requests premium feature without subscription
+### User requests Monte Carlo or Stress Test
 User: "Run Monte Carlo"
-→ Check subscription status first
-→ If no subscription, explain benefits and how to subscribe
-→ Offer free VaR as alternative
+→ Call POST /risk/monte-carlo with portfolio snapshot
+→ Poll until done
+→ Present simulation results with percentiles and projections

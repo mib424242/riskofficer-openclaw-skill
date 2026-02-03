@@ -68,14 +68,13 @@ export RISK_OFFICER_TOKEN="ro_pat_your_token_here"
 
 ## Subscription
 
-Some features require Quant subscription:
+All features are **currently FREE** for all users:
+- VaR calculation
 - Monte Carlo Simulation
 - Stress Testing
 - Portfolio Optimization
 
-VaR calculation is **free** for all users.
-
-Subscribe in RiskOfficer iOS app → Settings → Subscription.
+> Quant subscription is enabled and free during the beta period.
 
 ## Support
 
@@ -86,7 +85,3 @@ Subscribe in RiskOfficer iOS app → Settings → Subscription.
 ## License
 
 MIT
-
----
-
-**Synced from riskofficer backend v1.13.0**
