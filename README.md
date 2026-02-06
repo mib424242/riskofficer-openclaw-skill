@@ -21,20 +21,13 @@ Manage your investment portfolios, calculate risk metrics (VaR, Monte Carlo, Str
 
 ### 2. Install the Skill
 
-**Option A: Install via ClawHub (easiest)**  
-Skill is in the [OpenClaw catalog](https://clawhub.ai/skill/riskofficer). If you have [ClawHub CLI](https://docs.openclaw.ai/tools/clawhub) installed:
-
-```bash
-clawhub install riskofficer
-```
-
-**Option B: Clone to workspace**
+**Option A: Clone to workspace (recommended)**
 ```bash
 cd ~/.openclaw/workspace/skills
 git clone https://github.com/mib424242/riskofficer-openclaw-skill riskofficer
 ```
 
-**Option C: Clone to managed skills (shared)**
+**Option B: Clone to managed skills (shared)**
 ```bash
 cd ~/.openclaw/skills
 git clone https://github.com/mib424242/riskofficer-openclaw-skill riskofficer
@@ -83,12 +76,6 @@ All features are **currently FREE** for all users:
 
 > Quant subscription is enabled and free during the beta period.
 
-## Links
-
-- 📂 **ClawHub (catalog):** [clawhub.ai/skill/riskofficer](https://clawhub.ai/skill/riskofficer) — install with `clawhub install riskofficer`
-- 🔧 **GitHub:** [riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill)
-- 📱 **RiskOfficer app:** [App Store](https://apps.apple.com/ru/app/riskofficer/id6757360596)
-
 ## Support
 
 - Website: https://riskofficer.tech
@@ -98,3 +85,7 @@ All features are **currently FREE** for all users:
 ## License
 
 MIT
+
+---
+
+**Synced from riskofficer backend v1.14.0**
