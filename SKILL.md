@@ -300,16 +300,27 @@ Poll: `GET /api/v1/portfolio/optimizations/{optimization_id}`
 Result: `GET /api/v1/portfolio/optimizations/{optimization_id}/result`
 
 #### Calmar Ratio Optimization
-When user asks for Calmar optimization (requires 200+ days history):
+When user asks for Calmar optimization, maximize Calmar Ratio (CAGR / |Max Drawdown|). **Requires 200+ trading days of price history** per ticker (backend requests 252 days). If user has short history, suggest Risk Parity instead.
 
 ```bash
 curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/{snapshot_id}/optimize-calmar" \
   -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "optimization_mode": "long_only"
+    "optimization_mode": "long_only",
+    "constraints": {
+      "max_weight": 0.50,
+      "min_weight": 0.05,
+      "min_expected_return": 0.0,
+      "max_drawdown_limit": 0.15,
+      "min_calmar_target": 0.5
+    }
   }'
 ```
+
+Poll: `GET /api/v1/portfolio/optimizations/{optimization_id}` (check `optimization_type === "calmar_ratio"`).  
+Result: `GET /api/v1/portfolio/optimizations/{optimization_id}/result` — includes `current_metrics`, `optimized_metrics` (cagr, max_drawdown, calmar_ratio, recovery_time_days).  
+Apply: same as Risk Parity — `POST /api/v1/portfolio/optimizations/{optimization_id}/apply`.
 
 #### Apply Optimization
 **IMPORTANT:** Always show rebalancing plan and ask for explicit user confirmation first!
@@ -412,6 +423,15 @@ User: "What are the risks of my main portfolio?"
 → Poll until done
 → Present VaR, CVaR, volatility, risk contributions
 → Offer optimization if risks are unbalanced
+
+### User wants Calmar optimization
+User: "Оптимизируй портфель по Калмару" / "Optimize using Calmar Ratio" / "Maximize return per drawdown"
+→ Call GET /portfolios/list or aggregated to get snapshot_id
+→ Call POST /portfolio/{snapshot_id}/optimize-calmar with optimization_mode and optional constraints
+→ If 400 INSUFFICIENT_HISTORY: explain need 200+ trading days of history, suggest Risk Parity as alternative
+→ Poll GET /optimizations/{id} until status is done
+→ Call GET /optimizations/{id}/result — show current_metrics vs optimized_metrics (Calmar ratio, CAGR, max drawdown)
+→ Show rebalancing plan and ask for confirmation before apply
 
 ### User tries to mix currencies
 User: "Add Apple to my portfolio"
