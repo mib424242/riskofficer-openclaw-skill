@@ -62,6 +62,26 @@ curl -s "https://api.riskofficer.tech/api/v1/portfolio/snapshot/{snapshot_id}" \
 
 Response contains: name, total_value, currency, positions (array with ticker, quantity, current_price, value, weight).
 
+#### Get Portfolio History
+When user asks for portfolio history, how portfolio changed over time, or list of past snapshots:
+
+```bash
+curl -s "https://api.riskofficer.tech/api/v1/portfolio/history?days=30" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
+```
+
+**Query params:** `days` (optional, default 30, 1–365). Response: `snapshots` array with `snapshot_id`, `timestamp`, `total_value`, `positions_count`, `sync_source`, `type` (aggregated/manual/broker), `name`, `broker`, `sandbox`.
+
+#### Get Snapshot Diff (compare two portfolio versions)
+When user wants to compare two portfolio states (e.g. before/after rebalance, or two dates):
+
+```bash
+curl -s "https://api.riskofficer.tech/api/v1/portfolio/snapshot/{snapshot_id}/diff?compare_to={other_snapshot_id}" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
+```
+
+Response: added/removed/modified positions, `total_value_delta`. Both snapshots must belong to the user.
+
 #### Get Aggregated Portfolio
 When user asks for total/combined portfolio, overall position, or "show everything together":
 
@@ -217,11 +237,13 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/calculate-var" \
     "portfolio_snapshot_id": "{snapshot_id}",
     "method": "historical",
     "confidence": 0.95,
-    "horizon_days": 1
+    "horizon_days": 1,
+    "force_recalc": false
   }'
 ```
 
-Methods: `historical`, `parametric`, `garch`
+- **Methods:** `historical`, `parametric`, `garch`
+- **force_recalc** (optional, default false): If user wants a fresh calculation ignoring cache (e.g. "recalculate VaR", "refresh risk"), set `"force_recalc": true`. Otherwise the API may return a cached result when prices have not changed.
 
 This returns `calculation_id`. Poll for result:
 
@@ -230,7 +252,19 @@ curl -s "https://api.riskofficer.tech/api/v1/risk/calculation/{calculation_id}" 
   -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
 ```
 
-Wait until `status` is `done`, then present results.
+Wait until `status` is `done`, then present results. If the POST response already has `status: "done"` and `var_95`/`cvar_95` (cached result), you can present those without polling.
+
+#### Get VaR / Risk Calculation History
+When user asks for last risk calculations, previous VaR results, or "show my risk history":
+
+```bash
+curl -s "https://api.riskofficer.tech/api/v1/risk/history?limit=50" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
+```
+
+**Query params:** `limit` (optional, default 50, max 100).
+
+**Response:** `calculations` array with `calculation_id`, `portfolio_snapshot_id`, `status`, `method`, `var_95`, `cvar_95`, `sharpe_ratio`, `created_at`, `completed_at`. Use to show a short list of recent VaR runs or to let user pick a past result.
 
 #### Run Monte Carlo (QUANT - currently free for all users)
 When user asks for Monte Carlo simulation:
@@ -443,3 +477,19 @@ User: "Run Monte Carlo"
 → Call POST /risk/monte-carlo with portfolio snapshot
 → Poll until done
 → Present simulation results with percentiles and projections
+
+### User asks for risk or VaR history
+User: "Show my last VaR results" / "Previous risk calculations" / "История расчётов рисков"
+→ Call GET /risk/history?limit=50
+→ Present list of recent calculations (method, var_95, cvar_95, date)
+
+### User asks for portfolio history
+User: "How did my portfolio change?" / "История портфеля"
+→ Call GET /portfolio/history?days=30
+→ Present snapshots (date, total_value, positions_count, source)
+
+### User wants to compare two portfolio versions
+User: "Compare my portfolio now vs last week" / "Что изменилось в портфеле?"
+→ Get two snapshot_ids from GET /portfolio/history (or from context)
+→ Call GET /portfolio/snapshot/{snapshot_id}/diff?compare_to={other_snapshot_id}
+→ Present added/removed/modified positions and value delta

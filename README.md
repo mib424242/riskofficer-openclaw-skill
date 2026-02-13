@@ -22,7 +22,7 @@ Manage your investment portfolios, calculate risk metrics (VaR, Monte Carlo, Str
 ### 2. Install the Skill
 
 **Option A: Install via ClawHub (easiest)**  
-Skill is in the [OpenClaw catalog](https://clawhub.ai/skill/riskofficer). If you have [ClawHub CLI](https://docs.openclaw.ai/tools/clawhub) installed:
+Skill is in the [OpenClaw catalog](https://clawhub.ai/mib424242/riskofficer). If you have [ClawHub CLI](https://docs.openclaw.ai/tools/clawhub) installed:
 
 ```bash
 clawhub install riskofficer
@@ -86,7 +86,7 @@ All features are **currently FREE** for all users:
 
 ## Links
 
-- 📂 **ClawHub (catalog):** [clawhub.ai/skill/riskofficer](https://clawhub.ai/skill/riskofficer) — install with `clawhub install riskofficer`
+- 📂 **ClawHub (catalog):** [clawhub.ai/mib424242/riskofficer](https://clawhub.ai/mib424242/riskofficer) — install with `clawhub install riskofficer`
 - 🔧 **GitHub:** [riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill)
 - 📱 **RiskOfficer app:** [App Store](https://apps.apple.com/ru/app/riskofficer/id6757360596)
 
@@ -102,8 +102,6 @@ MIT
 
 ---
 
-**Synced from riskofficer backend v1.14.0**
+**Security:** This skill contains only Markdown and documented API examples (curl). No executables or scripts — compatible with ClawHub/VirusTotal scanning.
 
----
-
-**Synced from riskofficer backend v1.14.1**
+**Synced from riskofficer backend v1.15.0** — Risk history, portfolio history, snapshot diff, VaR force_recalc.
