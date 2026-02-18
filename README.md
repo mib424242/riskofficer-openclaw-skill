@@ -135,4 +135,4 @@ MIT
 
 **Security:** This skill contains only Markdown and documented API examples (curl). No executables or scripts — compatible with ClawHub/VirusTotal scanning.
 
-**Skill v2.0.1 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Backend v1.16.0.
+**Skill v2.0.2 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Backend v1.16.0.
