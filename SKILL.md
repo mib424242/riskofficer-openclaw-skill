@@ -1,6 +1,6 @@
 ---
 name: riskofficer
-description: Manage investment portfolios (long & short positions), search tickers, calculate risk metrics (VaR, Monte Carlo, Stress Tests), optimize allocations with Risk Parity or Calmar Ratio, manage broker connections
+description: Risk management and portfolio analytics — VaR, Monte Carlo, stress tests, Risk Parity and Calmar optimization. Assess risk, run scenarios, and optimize allocations on virtual portfolios (no real orders).
 metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
 ---
 
