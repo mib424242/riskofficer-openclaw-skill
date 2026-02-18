@@ -135,4 +135,4 @@ MIT
 
 **Security:** This skill contains only Markdown and documented API examples (curl). No executables or scripts — compatible with ClawHub/VirusTotal scanning.
 
-**Synced from riskofficer backend v1.16.0** — Full API coverage: ticker search, short positions, active snapshot selection, portfolio/broker delete, GARCH Monte Carlo, force_recalc for all async operations.
+**Skill v2.0.1 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Backend v1.16.0.

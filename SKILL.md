@@ -8,6 +8,16 @@ metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"R
 
 Connects to the RiskOfficer API to manage investment portfolios and calculate financial risk metrics.
 
+### Scope: analysis and research only (virtual portfolios)
+
+**All portfolio data and operations in this skill take place inside RiskOfficer’s own environment.** Portfolios you create, edit, or optimize here are **virtual** — they are used for analysis and research only. The agent can:
+
+- **Read** your portfolios (including those synced from brokers) to show positions, history, and risk metrics  
+- **Create and change** virtual/manual portfolios and run optimizations **inside RiskOfficer**  
+- **Run calculations** (VaR, Monte Carlo, stress tests) on these portfolios  
+
+**Nothing in this skill places or executes real orders** in your broker account. Broker sync is read-only for analysis; any rebalancing or trading in the real account is done by you in your broker’s app or in RiskOfficer’s own flows, not by the assistant. The token is used only to access RiskOfficer’s API for this analytical and research use.
+
 ### Setup
 
 1. Open RiskOfficer app → Settings → API Keys
@@ -611,6 +621,8 @@ VaR, Monte Carlo, Stress Test, and Optimization are **asynchronous**.
 ---
 
 ## Important Rules
+
+0. **Virtual / analytical scope:** Portfolios and all operations (create, optimize, delete, sync) exist only inside RiskOfficer. This skill is for analysis and research; it does not place or execute real broker orders.
 
 1. **Single Currency Rule (manual/broker portfolios):** Each portfolio must contain same-currency assets. Cannot mix SBER (RUB) with AAPL (USD). Aggregated portfolio is the exception — it auto-converts using CBR rates.
 
