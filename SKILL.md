@@ -1,6 +1,6 @@
 ---
 name: riskofficer
-description: Risk management and portfolio analytics — VaR, Monte Carlo, stress tests, Risk Parity and Calmar optimization. Assess risk, run scenarios, and optimize allocations on virtual portfolios (no real orders).
+description: Risk management and portfolio analytics: VaR, Monte Carlo, stress tests, Risk Parity and Calmar optimization. Run risk assessments, scenarios, and allocation optimization on virtual portfolios; no real broker orders.
 metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
 ---
 
