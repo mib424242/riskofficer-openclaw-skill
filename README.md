@@ -2,6 +2,9 @@
 
 Manage investment portfolios, calculate risk metrics (VaR, Monte Carlo, Stress Tests), and optimize allocations using Risk Parity or Calmar Ratio — all through natural language chat.
 
+**Required:** One env var — `RISK_OFFICER_TOKEN` (create in RiskOfficer app → Settings → API Keys).
+**Source:** [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill) · [riskofficer.tech](https://riskofficer.tech)
+
 ## Features
 
 - **Ticker Search** — Find any stock by name or symbol (MOEX, NYSE, NASDAQ, Crypto), get current prices and currency info

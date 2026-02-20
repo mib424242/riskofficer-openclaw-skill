@@ -8,6 +8,10 @@ metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"R
 
 Connects to the RiskOfficer API to manage investment portfolios and calculate financial risk metrics.
 
+**Required:** One environment variable — `RISK_OFFICER_TOKEN` (create in RiskOfficer app → Settings → API Keys). No other env vars or binaries are required.
+
+**Source:** Official skill repository: [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill). Product: [riskofficer.tech](https://riskofficer.tech). The token is issued only by the RiskOfficer app; this skill does not collect or store credentials.
+
 ### Scope: analysis and research only (virtual portfolios)
 
 **All portfolio data and operations in this skill take place inside RiskOfficer’s own environment.** Portfolios you create, edit, or optimize here are **virtual** — they are used for analysis and research only. The agent can:
