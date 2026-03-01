@@ -12,6 +12,14 @@ Connects to the RiskOfficer API to manage investment portfolios and calculate fi
 
 **Source:** Official skill repository: [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill). Product: [riskofficer.tech](https://riskofficer.tech). The token is issued only by the RiskOfficer app; this skill does not collect or store credentials.
 
+### Credentials and token handling
+
+- **This skill does not store or log your token.** The token is sent only in the HTTP `Authorization` header to `api.riskofficer.tech`; it is not written to disk, logged, or sent elsewhere. Where you store the token (environment variable or `~/.openclaw/openclaw.json`) is entirely under your control.
+- **Prefer** setting `RISK_OFFICER_TOKEN` as an environment variable for the session rather than saving it in `openclaw.json`. If you use `openclaw.json`, restrict file permissions and be aware which agents or users can read that file.
+- **RiskOfficer currently issues account-level tokens** (no scoped tokens). Create a token named for this skill (e.g. "OpenClaw") and revoke it in the RiskOfficer app if you stop using the skill.
+- **Token scope:** The token allows the skill to access your RiskOfficer data (portfolios, risk calculations, broker-synced positions for read-only analysis). Revoke or rotate the token if you need to revoke access.
+- **Verify links:** Confirm that [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill) and [riskofficer.tech](https://riskofficer.tech) match the publisher you trust before installing or providing a token.
+
 ### Scope: analysis and research only (virtual portfolios)
 
 **All portfolio data and operations in this skill take place inside RiskOfficer’s own environment.** Portfolios you create, edit, or optimize here are **virtual** — they are used for analysis and research only. The agent can:

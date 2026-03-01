@@ -1,0 +1,11 @@
+{
+  "name": "riskofficer",
+  "tagline": "Risk management and portfolio analytics: VaR, Monte Carlo, stress tests, optimization.",
+  "description": "Risk management and portfolio analytics: VaR, Monte Carlo, stress tests, Risk Parity and Calmar optimization. Run risk assessments, scenarios, and allocation optimization on virtual portfolios; no real broker orders.",
+  "version": "2.1.0",
+  "license": "MIT",
+  "homepage": "https://riskofficer.tech",
+  "support_url": "https://github.com/mib424242/riskofficer-openclaw-skill/issues",
+  "requiredEnv": ["RISK_OFFICER_TOKEN"],
+  "required_env": ["RISK_OFFICER_TOKEN"]
+}
