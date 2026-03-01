@@ -862,14 +862,24 @@ VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronou
 → Present VaR, CVaR, volatility, risk contributions per ticker
 → Offer optimization if risks are concentrated
 
+### User wants Risk Parity optimization
+"Optimize my portfolio" / "Balance risks" / "Оптимизируй портфель"
+→ `GET /portfolios/list` → get `active_snapshot_id || snapshot_id`
+→ `POST /portfolio/{snapshot_id}/optimize` with `optimization_mode` and `constraints`
+→ Poll `GET /portfolio/optimizations/{optimization_id}` until `status: "done"`
+→ `GET /portfolio/optimizations/{optimization_id}/result` → show rebalancing plan (current vs optimized weights)
+→ Ask: "Apply these changes?" → on confirmation: `POST /portfolio/optimizations/{optimization_id}/apply`
+→ Report `new_snapshot_id`
+
 ### User wants Calmar optimization
 "Optimize by Calmar ratio" / "Maximize return per drawdown" / "Оптимизируй по Калмару"
-→ Get `snapshot_id` from portfolios list
+→ Get `active_snapshot_id || snapshot_id` from portfolios list
 → `POST /portfolio/{snapshot_id}/optimize-calmar`
 → If `INSUFFICIENT_HISTORY`: explain 200+ trading days needed, suggest Risk Parity
-→ Poll until done
-→ Show `current_metrics` vs `optimized_metrics` (Calmar ratio, CAGR, max drawdown)
-→ Show rebalancing plan and ask for confirmation before apply
+→ Poll `GET /portfolio/optimizations/{optimization_id}` until `status: "done"`
+→ `GET /portfolio/optimizations/{optimization_id}/result` → show `current_metrics` vs `optimized_metrics` (Calmar ratio, CAGR, max drawdown)
+→ Show rebalancing plan and ask: "Apply these changes?"
+→ On confirmation: `POST /portfolio/optimizations/{optimization_id}/apply` → report `new_snapshot_id`
 
 ### User wants Monte Carlo simulation
 "Run Monte Carlo for 1 year" / "Запусти Монте-Карло"
