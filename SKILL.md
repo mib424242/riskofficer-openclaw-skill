@@ -1,8 +1,7 @@
 ---
 name: riskofficer
-description: Portfolio risk management and analytics. Use when user asks to create a portfolio, generate auto portfolio, calculate VaR, run Monte Carlo, stress test, optimize with Risk Parity or Calmar, manage positions, or check investment risk. Also covers ticker search, broker sync, and portfolio comparison.
-homepage: https://github.com/mib424242/riskofficer-openclaw-skill
-metadata: {"clawdbot":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
+description: Risk management and portfolio analytics: VaR, Monte Carlo, stress tests, Risk Parity, Calmar, Black-Litterman optimization, pre-trade checks, cross-portfolio correlation. Run risk assessments, scenarios, and allocation optimization on virtual portfolios; no real broker orders.
+metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
 ---
 
 ## RiskOfficer Portfolio Management
@@ -59,26 +58,12 @@ https://api.riskofficer.tech/api/v1
 
 All requests require: `Authorization: Bearer ${RISK_OFFICER_TOKEN}`
 
-### External Endpoints
+### Currency policy
 
-This skill calls **only** the RiskOfficer API. No other external services are contacted.
-
-| Endpoint base | Data sent | Purpose |
-|---|---|---|
-| `https://api.riskofficer.tech/api/v1/*` | Bearer token + request parameters (portfolio IDs, ticker symbols, amounts, optimization settings) | All portfolio, risk, and optimization operations |
-
-No data is sent to any other domain. The skill contains no scripts, no executables, and no outbound calls beyond the documented API.
-
-### Security & Privacy
-
-- **Network:** All HTTP requests go exclusively to `api.riskofficer.tech` over HTTPS. No other domains are contacted.
-- **Credentials:** Only `RISK_OFFICER_TOKEN` is used. It is passed solely in the `Authorization` HTTP header. It is never written to disk, logged, or included in any output.
-- **Local files:** This skill reads and writes no local files. It has no `scripts/` directory and no executable code.
-- **Data flow:** User input (ticker names, portfolio parameters, amounts) is sent to the RiskOfficer API and the response is presented back. No data is cached, stored, or forwarded elsewhere.
-
-### Trust Statement
-
-By using this skill, your requests and portfolio data are sent to the RiskOfficer API (`api.riskofficer.tech`). Only install this skill if you trust RiskOfficer ([riskofficer.tech](https://riskofficer.tech)) with your portfolio analysis data. The source code is fully open at [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill).
+- **Supported currencies:** **RUB** and **USD** only. No EUR/CNY/other in API contracts for base or analysis currency.
+- **FX source:** All exchange rates are **CBR (Central Bank of Russia)** via Data Service (MOEX/CBR). There is no alternative provider.
+- **Single currency per portfolio:** Each portfolio must contain assets in one currency (all MOEX or all US). Mixed-currency portfolios are not supported; create separate portfolios.
+- **Aggregated view:** User chooses `base_currency` (RUB or USD); sub-portfolios in the other currency are converted using CBR rates.
 
 ---
 
@@ -213,6 +198,9 @@ curl -s "https://api.riskofficer.tech/api/v1/portfolio/aggregated?type=all" \
 - `portfolio.total_value` — total in base currency
 - `portfolio.currency` — base currency (`RUB` or `USD`)
 - `portfolio.sources_count` — number of portfolios aggregated
+- `exchange_rates` (optional): `USD_RUB`, `EUR_RUB`, `CNY_RUB`, `rate_date`, `rate_source` (always `"CBR"`), `base_currency`, `fx_quality` (`"live"` = from CBR/cache, `"default"` = static fallback used when CBR unavailable, `"none"` = no conversion)
+- `warnings` — e.g. mixed-currency positions, FX fallback used
+- `data_quality` (optional): `fx_coverage` (share of FX lookups with live rate), `fx_live_count`, `fx_default_count`, `fx_unavailable_count`, `portfolios_included`, `portfolios_excluded` — for observability of aggregation and FX usage
 
 **Example response:**
 ```json
@@ -230,7 +218,7 @@ curl -s "https://api.riskofficer.tech/api/v1/portfolio/aggregated?type=all" \
 }
 ```
 
-Positions in different currencies are automatically converted using current CBR exchange rates.
+Positions in different currencies are automatically converted using **CBR (Central Bank of Russia)** rates. Only RUB and USD are supported; each sub-portfolio must have assets in a single currency.
 
 #### Change Base Currency (Aggregated Portfolio)
 When the user wants to see the aggregated portfolio in a different currency:
@@ -285,6 +273,8 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/manual" \
 - `avg_price` (optional): average purchase/entry price for P&L tracking. If omitted on new portfolio → uses current market price. If omitted on edit → inherits from previous snapshot.
 
 **Query params:** `locale` (optional, default `ru`) — affects asset name resolution.
+
+**Currency policy (platform-wide):** Only **RUB** and **USD** are supported. All FX rates come from **CBR (Central Bank of Russia)** via Data Service (MOEX/CBR). There is no choice of FX provider — it is always CBR.
 
 **IMPORTANT — Single Currency Rule:**
 All assets in one portfolio must be in the **same currency**.
@@ -512,7 +502,7 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/monte-carlo" \
 **Parameters:**
 - `simulations`: number of paths, default `1000` (range 100–10000)
 - `horizon_days`: forecast horizon, default `365` (range 1–365)
-- `model`: `"gbm"` (Geometric Brownian Motion, recommended) or `"garch"`
+- `model`: `"gbm"` (Geometric Brownian Motion — **only this is implemented**) or `"garch"` (accepted but not yet implemented; will behave as GBM)
 - `confidence_levels` (optional): array of percentiles, default `[0.05, 0.50, 0.95]`
 - `force_recalc` (optional, default `false`): bypass cache
 
@@ -561,6 +551,11 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/{snapshot_id}/opt
     "constraints": {
       "max_weight": 0.30,
       "min_weight": 0.02
+    },
+    "options": {
+      "risk_measure": "variance",
+      "turnover_limit": 0.3,
+      "turnover_penalty": 0.1
     }
   }'
 ```
@@ -569,6 +564,14 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/{snapshot_id}/opt
 - `"long_only"`: all weights ≥ 0 (shorts are flipped to long before optimization)
 - `"preserve_directions"`: keeps long/short directions as-is (default)
 - `"unconstrained"`: weights can change sign freely
+
+**`options.risk_measure`** (optional, default `"variance"`):
+- `"variance"`: classic ERC (Maillard, Roncalli, Teïletche 2010)
+- `"cvar"`: CVaR Risk Budgeting via skfolio (convex optimization, CLARABEL solver). Better for fat-tailed distributions
+
+**Turnover constraints** (optional, require `current_weights` in portfolio):
+- `turnover_limit`: hard constraint — `sum(|w_new - w_old|) <= limit`. Optimizer stays within budget
+- `turnover_penalty`: soft L1 penalty in objective — trades off improvement vs turnover cost
 
 Poll: `GET /api/v1/portfolio/optimizations/{optimization_id}`
 Result: `GET /api/v1/portfolio/optimizations/{optimization_id}/result`
@@ -592,6 +595,10 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/{snapshot_id}/opt
       "min_expected_return": 0.0,
       "max_drawdown_limit": 0.15,
       "min_calmar_target": 0.5
+    },
+    "options": {
+      "turnover_limit": 0.3,
+      "turnover_penalty": 0.1
     }
   }'
 ```
@@ -612,134 +619,250 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/optimizations/{op
 
 Response: `new_snapshot_id`. Can only be applied once per optimization.
 
----
-
-### Auto Portfolio Generation (QUANT — currently free for all users)
-
-Automatically construct an optimal portfolio from scratch. The system selects assets from the available universe, optimizes weights using the chosen strategy, rounds to whole lots, and returns ready-to-save positions.
-
-#### Get Universe Stats
-Check how many assets are available before starting generation. Does not require Quant subscription.
+#### Black-Litterman Optimization (QUANT)
+When the user has views (expected returns with confidence) on specific assets and wants an optimal portfolio:
 
 ```bash
-curl -s "https://api.riskofficer.tech/api/v1/portfolio/auto-generate/universe-stats" \
-  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
-```
-
-**Response:**
-```json
-{
-  "RUB": {"eligible_assets": 45, "last_updated": "2026-02-28T05:00:00Z", "strategies_available": ["max_sharpe", "hrp", "max_calmar"]},
-  "USD": {"eligible_assets": 120, "last_updated": "2026-02-28T05:10:00Z", "strategies_available": ["max_sharpe", "hrp"]}
-}
-```
-
-Always show universe stats to the user before starting generation so they know what is available.
-
-#### Start Auto-Generate
-When the user wants to create a portfolio automatically:
-
-```bash
-curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/auto-generate" \
+curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/optimize-bl" \
   -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
+    "tickers": ["SBER", "GAZP", "LKOH", "ROSN"],
+    "views": [
+      {"ticker": "SBER", "expected_return": 0.15, "confidence": 0.7},
+      {"ticker": "ROSN", "expected_return": -0.05, "confidence": 0.5}
+    ],
+    "constraints": { ... },
+    "options": { "risk_free_rate": 0.16, "tau": 0.05 },
+    "portfolio_snapshot_id": null,
+    "currency": "RUB"
+  }'
+```
+
+**Parameters:**
+- `tickers` (required, min 2): ticker symbols for universe
+- `views` (required, min 1): investor views — `expected_return` is annual (0.15 = 15%), `confidence` 0.01–1.0 (Idzorek method scales Omega)
+- `constraints.weight_bound_lower`: min weight per asset (negative allows shorts, default -0.15)
+- `constraints.weight_bound_upper`: max weight per asset (default 0.25)
+- `constraints.max_gross_exposure`: max sum(|w_i|) (default 2.0)
+- `constraints.target_net_exposure`: exact sum(w_i) target (e.g. 1.0 for fully invested). Mutually exclusive with `max_net_exposure`
+- `constraints.max_net_exposure`: max |sum(w_i)|
+- `constraints.turnover_limit` / `constraints.turnover_penalty`: same as Risk Parity (see above). **To enforce turnover vs current portfolio**, pass `portfolio_snapshot_id` (see below).
+- `options.risk_free_rate`: annual risk-free rate (default 0.16 for MOEX)
+- `options.tau`: uncertainty scaling (default 0.05)
+- `portfolio_snapshot_id` (optional): snapshot UUID of the portfolio to compute *current weights* from. When set, turnover constraints are applied relative to this portfolio. Omit for greenfield optimization.
+- `currency` (optional, default `"RUB"`): market data universe — `"RUB"` or `"USD"`. Use USD for US-listed tickers.
+
+**Response:** `optimization_id`, `status: "pending"`. Poll via `GET /portfolio/optimizations/{id}`, result via `GET /portfolio/optimizations/{id}/result`.
+
+**Result contains:** `target_portfolio` (tickers with weights and directions), `metrics` (expected return, volatility, Sharpe, net/gross exposure, portfolio_type), `bl_posterior_returns`.
+
+**Apply:** `POST /portfolio/optimizations/{id}/apply` — creates a new manual portfolio "BL Optimized".
+
+**User prompt examples:**
+- "I think Sber will return 15% with high confidence, optimize my portfolio" → BL with view
+- "Build a long-short portfolio: long on banks, short on oil" → BL with positive/negative views
+- "Optimize with Black-Litterman" → ask user for views (expected returns + confidence per ticker)
+
+---
+
+### Pre-Trade Check (FREE)
+
+#### Run Pre-Trade Risk Check
+When the user or AI agent wants to validate a target portfolio before execution. **VaR is computed using historical method** (empirical distribution from market data).
+
+```bash
+curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/pre-trade-check" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_portfolio": {"SBER": 0.15, "GAZP": 0.10, "LKOH": 0.12, "ROSN": -0.08},
+    "amount": 1000000,
     "currency": "RUB",
-    "amount": 500000,
-    "strategy": "max_sharpe",
     "constraints": {
-      "max_weight": 0.25,
-      "min_assets": 5,
-      "max_assets": 25,
-      "exclude_tickers": []
+      "max_var_pct": 5.0,
+      "weight_bound_upper": 0.25,
+      "weight_bound_lower": -0.15,
+      "max_gross_exposure": 2.0,
+      "max_net_exposure": 0.5
     }
   }'
 ```
 
 **Parameters:**
-- `currency` (required): `"RUB"` or `"USD"`
-- `amount` (required): investment amount (>0; minimum 10,000 RUB / 100 USD)
-- `strategy` (required): `"max_sharpe"` | `"hrp"` | `"max_calmar"`
+- `target_portfolio` (required): dict of `{ticker: weight}` — negative weight = short
+- `amount` (required): portfolio notional value for VaR calculation
+- `currency` (optional, default `"RUB"`): currency of the portfolio — `"RUB"` or `"USD"`. Determines which market data universe is used for historical VaR.
 - `constraints` (optional):
-  - `max_weight` (0–1, default 0.25): max weight per asset
-  - `min_assets` (3–50, default 5): minimum number of assets
-  - `max_assets` (3–50, default 25): maximum number of assets
-  - `exclude_tickers`: list of tickers to exclude
+  - `max_var_pct`: maximum allowed VaR as % (e.g. 5.0 = 5%)
+  - `weight_bound_upper` / `weight_bound_lower`: per-position weight limits
+  - `max_gross_exposure` / `max_net_exposure`: exposure limits
 
-**Strategy selection guidance:**
-- User wants "optimal" / "best balance" / "maximum return" → `max_sharpe`
-- User wants "reliable" / "diversified" / "safe" / "stable" → `hrp`
-- User wants "minimum drawdowns" / "protect from losses" → `max_calmar`
-- If unsure → `max_sharpe` (recommended default)
+**Response (synchronous, no polling):**
+```json
+{
+  "verdict": "pass",
+  "num_positions": 4,
+  "max_position_weight": 0.15,
+  "var_95_pct": 3.21,
+  "currency": "RUB",
+  "exposure_metrics": {
+    "net_exposure": 0.29,
+    "gross_exposure": 0.45,
+    "long_exposure": 0.37,
+    "short_exposure": 0.08
+  },
+  "constraint_violations": [],
+  "result_hash": "0x...",
+  "data_quality": {
+    "tickers_requested": 4,
+    "tickers_with_data": 4,
+    "tickers_missing": [],
+    "total_dates": 252,
+    "dates_dropped": 0
+  }
+}
+```
+**`data_quality`** (optional): `tickers_requested`, `tickers_with_data`, `tickers_missing`, `total_dates`, `dates_dropped` — reflects alignment of historical data used for VaR (inner-join by date; no zero-fill).
 
-**Response:** `optimization_id`, `status: "pending"`. Then poll as usual.
+**`verdict`:** `"pass"` (all OK), `"fail"` (hard constraint violations), `"warning"` (soft issues)
 
-#### Poll Status
-Same as other optimizations:
+**User prompt examples:**
+- "Check if this portfolio is safe" / "Проверь портфель перед торговлей"
+- "Run pre-trade check for: SBER 15%, GAZP 10%, ROSN -8%"
+- After BL optimization: "Check the result before applying"
+
+---
+
+### Batch Portfolio Creation (FREE)
+
+#### Create Multiple Portfolios
+When the user or platform wants to create several portfolios at once:
 
 ```bash
-curl -s "https://api.riskofficer.tech/api/v1/portfolio/optimizations/{optimization_id}" \
-  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
+curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/manual/batch" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolios": [
+      {
+        "name": "Pod Alpha",
+        "positions": [{"ticker": "SBER", "quantity": 100}, {"ticker": "GAZP", "quantity": -50}],
+        "currency": "RUB"
+      },
+      {
+        "name": "Pod Beta",
+        "positions": [{"ticker": "LKOH", "quantity": 30}],
+        "currency": "RUB"
+      }
+    ]
+  }'
 ```
 
-Check `optimization_type === "auto_generate"`. Poll every 3 seconds.
+**Response:** array of `{name, snapshot_id, status}` per portfolio. Partial success is possible — one portfolio can fail without affecting others.
 
-#### Get Result
-When status is `done`:
+---
+
+### Cross-Portfolio Correlation (QUANT)
+
+#### Compute PnL Correlation Between Portfolios
+When the user asks about diversification across portfolios/pods or re-correlation risk:
 
 ```bash
-curl -s "https://api.riskofficer.tech/api/v1/portfolio/optimizations/{optimization_id}/result" \
+curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/correlation" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_ids": null,
+    "window_days": 60,
+    "include_crisis_regime": true,
+    "analysis_currency": "RUB"
+  }'
+```
+
+**Parameters:**
+- `portfolio_ids` (optional): list of snapshot UUIDs. `null` = all user's portfolios (latest snapshot per portfolio)
+- `window_days` (optional, default 60, range 20–252): rolling window for PnL correlation
+- `include_crisis_regime` (optional, default false): compare normal vs crisis correlations (crisis = days with aggregate PnL < μ-2σ)
+- `analysis_currency` (optional, default `"RUB"`): currency to normalize all PnL series into before correlation — `"RUB"` or `"USD"`. Use when portfolios are in different currencies; rates are CBR historical.
+
+**Response:** async — poll via `GET /portfolio/optimizations/{id}`, result via `GET /portfolio/optimizations/{id}/result`.
+
+**Result contains:**
+```json
+{
+  "result_data": {
+    "portfolio_names": ["Pod Alpha", "Pod Beta", "T-Bank"],
+    "correlation_matrix": [[1.0, 0.35, 0.12], [0.35, 1.0, 0.48], [0.12, 0.48, 1.0]],
+    "pairs": [ ... ],
+    "avg_pairwise_correlation": 0.317,
+    "analysis_currency": "RUB",
+    "fx_source": "CBR",
+    "fx_coverage": 1.0,
+    "fx_conversions": { "Pod Alpha": "USD->RUB", "Pod Beta": "RUB" },
+    "crisis_regime": {
+      "available": true,
+      "avg_normal_correlation": 0.25,
+      "avg_crisis_correlation": 0.72,
+      "re_correlation_delta": 0.47,
+      "n_crisis_days": 8,
+      "n_normal_days": 52
+    }
+  }
+}
+```
+
+**Key metric:** `re_correlation_delta` — how much correlations increase during stress. > 0.2 = significant re-correlation risk (pods lose diversification under stress).
+
+**User prompt examples:**
+- "How correlated are my portfolios?" / "Какая корреляция между портфелями?"
+- "Check re-correlation risk" / "Center Book analysis"
+- "Compare normal vs crisis correlations"
+
+---
+
+### Per-Portfolio Risk Settings (FREE)
+
+#### Set Individual VaR Threshold
+When the user wants a different risk alert threshold for a specific portfolio:
+
+```bash
+curl -s -X PATCH "https://api.riskofficer.tech/api/v1/portfolio/{snapshot_id}/settings" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"risk_threshold_var": 5.0}'
+```
+
+**Parameters:**
+- `risk_threshold_var`: VaR threshold in percent (5.0 = 5%). When VaR exceeds this, a push notification / alert is triggered for this specific portfolio
+
+**User prompt examples:**
+- "Set VaR alert at 3% for my conservative portfolio"
+- "Raise the risk threshold to 7% for the aggressive pod"
+
+---
+
+### Feature Flags
+
+#### Get Feature Flags
+Check which features are enabled:
+
+```bash
+curl -s "https://api.riskofficer.tech/api/v1/feature-flags" \
   -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
 ```
 
 **Response:**
 ```json
 {
-  "optimization_id": "uuid",
-  "optimization_type": "auto_generate",
-  "status": "done",
-  "portfolio": {
-    "positions": [
-      {"ticker": "SBER", "target_weight": 0.15, "quantity": 200, "lots": 2, "value": 57000},
-      {"ticker": "LKOH", "target_weight": 0.12, "quantity": 8, "lots": 8, "value": 48000}
-    ],
-    "total_invested": 485000,
-    "cash_residual": 15000,
-    "assets_count": 12,
-    "currency": "RUB"
-  },
-  "metrics": {
-    "expected_annual_return": 0.18,
-    "expected_volatility": 0.22,
-    "sharpe_ratio": 0.82,
-    "max_drawdown": 0.15,
-    "var_95_daily": 12500,
-    "hhi": 0.09
-  },
-  "selection_reasoning": {
-    "strategy": "max_sharpe",
-    "universe_size": 45,
-    "after_amount_filter": 38,
-    "final_selected": 12,
-    "converged": true,
-    "fallback_used": null
-  }
+  "websocket_enabled": true,
+  "subscription_required_for_quant": false,
+  "pre_trade_check_enabled": true,
+  "black_litterman_enabled": true,
+  "cross_correlation_enabled": true,
+  "cvar_risk_parity_enabled": true
 }
 ```
-
-Present the result clearly: positions with weights/quantities, key metrics (Sharpe, Max Drawdown, Expected Return), and cash residual. If `fallback_used` is not null, inform the user which fallback strategy was applied.
-
-#### Apply (Save as Portfolio)
-After showing the result and getting user confirmation:
-
-```bash
-curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/optimizations/{optimization_id}/apply" \
-  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}"
-```
-
-Creates a new manual portfolio from the generated positions. Response: `new_snapshot_id`.
-
-**IMPORTANT:** Always show the full generated portfolio and ask for explicit confirmation before applying.
 
 ---
 
@@ -758,7 +881,7 @@ Currently all users return `has_subscription: true`.
 
 ## Async Operations
 
-VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronous**.
+VaR, Monte Carlo, Stress Test, and Optimization are **asynchronous**.
 
 **Polling pattern:**
 1. POST endpoint → get `calculation_id` / `simulation_id` / `optimization_id`
@@ -774,8 +897,7 @@ VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronou
 | VaR | 3–10 seconds |
 | Monte Carlo | 10–30 seconds |
 | Stress Test | 5–15 seconds |
-| Optimization (Risk Parity / Calmar) | 10–30 seconds |
-| Auto Portfolio Generation | 15–45 seconds |
+| Optimization | 10–30 seconds |
 
 **User communication:**
 - Show "Calculating..." immediately after starting
@@ -808,13 +930,19 @@ VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronou
    - `400 missing_api_key` → Broker not connected via app
    - `400 currency_mismatch` → Mixed currencies in a single portfolio
    - `400 INSUFFICIENT_HISTORY` → Not enough price history for Calmar (200+ trading days needed); suggest Risk Parity
+   - `400 MVO infeasible` → BL constraints too tight; suggest relaxing weight bounds or exposure limits
    - `404 Not Found` → Portfolio or snapshot not found (may have been deleted)
-   - `429 Too Many Requests` → Optimization rate limit reached
-   - `503 Service Unavailable` → Market data not ready or stale (auto-generate); try again later
+   - `429 Too Many Requests` → Optimization rate limit reached (per-tier: free 30/h, quant 100/h, pro 1000/h)
 
 9. **Active Snapshot:** `active_snapshot_id` from `/portfolios/list` takes priority over `snapshot_id` when running calculations. Use `active_snapshot_id || snapshot_id` for optimization calls.
 
-10. **Auto-Generate:** Always confirm strategy choice and show universe stats before starting auto portfolio generation. Present the full result (positions, metrics, cash residual) and ask for confirmation before applying (saving).
+10. **result_hash (ERC-8004):** Optimize and VaR responses include `result_hash` — a keccak256 hash for deterministic verification. Informational; safe to ignore unless building on-chain verification.
+
+11. **Pre-trade check before apply:** For AI agents building autonomous trade pipelines, always run `POST /risk/pre-trade-check` on the BL optimization result before calling apply. This catches constraint violations the optimizer may not enforce (sector limits, VaR limits). Use `currency: "RUB"` or `"USD"` to match the portfolio (default RUB).
+
+12. **Currency in APIs:** Pre-trade accepts optional `currency` (RUB/USD). BL accepts optional `currency` (market data universe) and `portfolio_snapshot_id` (for turnover vs current portfolio). Correlation accepts optional `analysis_currency` (RUB/USD) — PnL is normalized to this currency using CBR historical rates.
+
+**Methodology and references:** This skill includes a `references/` folder with implementation notes and academic sources. When users ask *how* VaR, Risk Parity, Calmar, Black-Litterman, pre-trade check, correlation, or aggregated portfolio are implemented, you can cite the matching file: `methodology-var.md`, `methodology-risk-parity.md`, `methodology-calmar.md`, `methodology-black-litterman.md`, `methodology-pre-trade.md`, `methodology-correlation.md`, `methodology-aggregation.md`, `methodology-hrp.md`, `methodology-monte-carlo.md`, `methodology-stress-test.md`, `methodology-metrics.md`, `methodology-auto-portfolio.md`. For a consolidated list of papers and libraries, see `references/academic-references.md`.
 
 ---
 
@@ -862,24 +990,14 @@ VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronou
 → Present VaR, CVaR, volatility, risk contributions per ticker
 → Offer optimization if risks are concentrated
 
-### User wants Risk Parity optimization
-"Optimize my portfolio" / "Balance risks" / "Оптимизируй портфель"
-→ `GET /portfolios/list` → get `active_snapshot_id || snapshot_id`
-→ `POST /portfolio/{snapshot_id}/optimize` with `optimization_mode` and `constraints`
-→ Poll `GET /portfolio/optimizations/{optimization_id}` until `status: "done"`
-→ `GET /portfolio/optimizations/{optimization_id}/result` → show rebalancing plan (current vs optimized weights)
-→ Ask: "Apply these changes?" → on confirmation: `POST /portfolio/optimizations/{optimization_id}/apply`
-→ Report `new_snapshot_id`
-
 ### User wants Calmar optimization
 "Optimize by Calmar ratio" / "Maximize return per drawdown" / "Оптимизируй по Калмару"
-→ Get `active_snapshot_id || snapshot_id` from portfolios list
+→ Get `snapshot_id` from portfolios list
 → `POST /portfolio/{snapshot_id}/optimize-calmar`
 → If `INSUFFICIENT_HISTORY`: explain 200+ trading days needed, suggest Risk Parity
-→ Poll `GET /portfolio/optimizations/{optimization_id}` until `status: "done"`
-→ `GET /portfolio/optimizations/{optimization_id}/result` → show `current_metrics` vs `optimized_metrics` (Calmar ratio, CAGR, max drawdown)
-→ Show rebalancing plan and ask: "Apply these changes?"
-→ On confirmation: `POST /portfolio/optimizations/{optimization_id}/apply` → report `new_snapshot_id`
+→ Poll until done
+→ Show `current_metrics` vs `optimized_metrics` (Calmar ratio, CAGR, max drawdown)
+→ Show rebalancing plan and ask for confirmation before apply
 
 ### User wants Monte Carlo simulation
 "Run Monte Carlo for 1 year" / "Запусти Монте-Карло"
@@ -925,23 +1043,34 @@ VaR, Monte Carlo, Stress Test, Optimization, and Auto-Generate are **asynchronou
 → On confirmation: `DELETE /brokers/connections/tinkoff?sandbox=false`
 → Inform that reconnection requires the mobile app
 
-### User wants to generate a portfolio automatically
-"Create an investment portfolio for 500K rubles" / "Собери портфель на 500 тысяч"
-→ `GET /portfolio/auto-generate/universe-stats` → show available assets per currency
-→ Suggest strategy (default: max_sharpe) and confirm with user
-→ `POST /portfolio/auto-generate` with `{currency: "RUB", amount: 500000, strategy: "max_sharpe"}`
+### User wants Black-Litterman optimization
+"I think Sber will return 15% and Gazprom 10%" / "Оптимизируй по Блэку-Литтерману"
+→ Collect views: ask for tickers, expected returns, and confidence
+→ `POST /portfolio/optimize-bl` with views + constraints
 → Poll until done
-→ Present positions, metrics (Sharpe, Max DD, Expected Return), cash residual
-→ Ask: "Save this portfolio?" → on confirmation: `POST .../apply`
+→ Show target portfolio (tickers, weights, directions), metrics (Sharpe, expected return, volatility)
+→ Ask confirmation before `POST /portfolio/optimizations/{id}/apply`
 
-### User wants a safe/reliable portfolio
-"Build me a safe portfolio for $10,000" / "Надёжный портфель на 10 тысяч долларов"
-→ Strategy: `hrp` (Hierarchical Risk Parity — best for stability)
-→ `GET /portfolio/auto-generate/universe-stats` → confirm USD availability
-→ `POST /portfolio/auto-generate` with `{currency: "USD", amount: 10000, strategy: "hrp"}`
-→ Poll, present result, ask to save
+### User wants to check a portfolio before trading
+"Check this before I trade" / "Проверь портфель перед исполнением"
+→ `POST /risk/pre-trade-check` with target weights + amount + constraints
+→ Show verdict (pass/fail/warning), VaR, exposure metrics, violations
+→ If "fail" → explain which constraints are violated
 
-### User asks what's available for auto-generation
-"What assets can I auto-generate from?" / "Какие активы доступны для автопортфеля?"
-→ `GET /portfolio/auto-generate/universe-stats`
-→ Show per currency: number of eligible assets, available strategies, last updated
+### User wants to create multiple portfolios at once
+"Create 3 pod portfolios" / "Создай несколько портфелей"
+→ `POST /portfolio/manual/batch` with array of portfolios
+→ Show per-portfolio status (created/error)
+
+### User asks about cross-portfolio correlation
+"How diversified are my pods?" / "Какая корреляция между портфелями?"
+→ `POST /portfolio/correlation` with `include_crisis_regime: true`
+→ Poll until done
+→ Show avg pairwise correlation, matrix, pairs detail
+→ If crisis data available: show normal vs crisis correlation and re-correlation delta
+→ If `re_correlation_delta > 0.2`: warn about re-correlation risk
+
+### User wants CVaR Risk Parity
+"Optimize with CVaR" / "Оптимизируй по CVaR"
+→ `POST /portfolio/{snapshot_id}/optimize` with `options: { risk_measure: "cvar" }`
+→ Explain: CVaR is better for fat-tailed distributions, accounts for tail risk beyond VaR
