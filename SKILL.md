@@ -1,6 +1,6 @@
 ---
 name: riskofficer
-description: Risk management and portfolio analytics: VaR, Monte Carlo, stress tests, Risk Parity, Calmar, Black-Litterman optimization, pre-trade checks, cross-portfolio correlation. Run risk assessments, scenarios, and allocation optimization on virtual portfolios; no real broker orders.
+description: Portfolio risk management and analytics. Use when user asks to calculate VaR, run Monte Carlo, stress test, optimize with Risk Parity / Calmar / Black-Litterman, run pre-trade check, check sector concentration, manage portfolios, or analyze cross-portfolio correlation. Also covers ticker search, broker sync, batch portfolio creation, and portfolio comparison.
 metadata: {"openclaw":{"requires":{"env":["RISK_OFFICER_TOKEN"]},"primaryEnv":"RISK_OFFICER_TOKEN","emoji":"📊","homepage":"https://riskofficer.tech"}}
 ---
 

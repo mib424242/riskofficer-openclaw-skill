@@ -1,6 +1,6 @@
 # RiskOfficer Skill for OpenClaw
 
-Manage investment portfolios, calculate risk metrics (VaR, Monte Carlo, Stress Tests), and optimize allocations using Risk Parity, Calmar, or Black-Litterman — all through natural language chat.
+Manage investment portfolios, calculate risk metrics (VaR, Monte Carlo, Stress Tests), and optimize allocations using Risk Parity, Calmar, or Black-Litterman — all through natural language chat. Includes pre-trade risk checks with sector concentration limits and cross-portfolio correlation analysis.
 
 **Required:** One env var — `RISK_OFFICER_TOKEN` (create in RiskOfficer app → Settings → API Keys).  
 **Source:** [github.com/mib424242/riskofficer-openclaw-skill](https://github.com/mib424242/riskofficer-openclaw-skill) · [riskofficer.tech](https://riskofficer.tech)
@@ -11,7 +11,7 @@ Manage investment portfolios, calculate risk metrics (VaR, Monte Carlo, Stress T
 - **Portfolio Management** — View, create, edit, and delete portfolios; long & short positions supported
 - **Batch Portfolios** — Create multiple portfolios in one call (for multi-pod/multi-strategy setups)
 - **Risk Calculations** — VaR (free, 3 methods), Monte Carlo simulation, Stress Tests against historical crises
-- **Pre-Trade Check** — Validate target portfolio against VaR/exposure/weight constraints before trading (free)
+- **Pre-Trade Check** — Validate target portfolio against VaR/exposure/weight/sector concentration constraints before trading (free)
 - **Portfolio Optimization** — Risk Parity (ERC, CVaR), Calmar Ratio, Black-Litterman (views + constraints); long-only, long-short, or unconstrained; turnover constraints (soft + hard)
 - **Cross-Portfolio Correlation** — PnL correlation matrix across portfolios with crisis regime analysis (re-correlation risk detection)
 - **Auto Portfolio Generation** — Automatically construct optimal portfolios (Max Sharpe, HRP, Max Calmar)
@@ -165,7 +165,7 @@ MIT
 
 **Security:** This skill contains only Markdown and documented API examples (curl). No executables or scripts — compatible with ClawHub/VirusTotal scanning.
 
-**Skill v4.2.0 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Currency: RUB/USD only, CBR rates.**
+**Skill v4.3.0 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Currency: RUB/USD only, CBR rates.**
 
 ---
 
