@@ -14,7 +14,7 @@ Before applying a target portfolio (e.g. after Black-Litterman optimization), va
   - `amount`: portfolio amount in base currency (used to convert VaR to absolute and percentage).
   - `currency` (optional): `"RUB"` or `"USD"` — determines which market data universe is used for historical VaR; default `"RUB"`.
   - `constraints`: optional `PreTradeConstraints` (see below).
-- **Response:** `verdict` ("pass" | "warning" | "fail"), `var_95_pct`, `currency`, `exposure_metrics`, `constraint_violations`, `result_hash` (ERC-8004 deterministic hash for verification), optional `data_quality` (see below).
+- **Response:** `verdict` ("pass" | "warning" | "fail"), `var_95_pct`, `currency`, `exposure_metrics`, `constraint_violations`, `result_hash` (ERC-8004 deterministic hash for verification), optional `data_quality` (see below), optional `sector_exposures` (dict mapping sector name to its share of gross exposure; present when sector constraints are used).
 
 ## Exposure metrics
 
@@ -38,7 +38,30 @@ Each constraint is optional (null = not checked). If present, a violation is app
 | `max_gross_exposure` | gross_exposure ≤ limit | error |
 | `max_net_exposure` | \|net_exposure\| ≤ limit | error |
 | `max_var_pct` | VaR (95%, as % of amount) ≤ limit; see below | error if VaR available, warning if VaR unavailable |
-| `max_sector_concentration` | Not yet implemented; currently adds a **warning** only | warning |
+| `max_sector_concentration` | No single sector's exposure exceeds the limit | error (or warning if Data Service unavailable) |
+| `sector_limits` | Per-sector limits `{sector_name: max_weight}` — each named sector must not exceed its specific limit. Case-insensitive matching. | error per sector exceeded |
+
+## Sector concentration check
+
+When `max_sector_concentration` or `sector_limits` is provided, the backend fetches sector metadata from Data Service and computes each sector's share of gross exposure.
+
+### Data source
+
+1. **Primary:** `DataServiceClient.get_autoportfolio_market_data(currency)` — returns the full `universe` with a `sector` field per ticker. This is a single request cached in Redis (TTL 48h).
+2. **Fallback:** For tickers not found in the universe (e.g. foreign stocks), `DataServiceClient.get_symbol_details(ticker)` is called per ticker.
+3. Tickers with no sector after both attempts are classified as `"Other"` and listed in `data_quality.tickers_without_sector`.
+
+### Sector exposure formula
+
+$$\text{sector\_exposure}(s) = \frac{\sum_{t \in s} |w_t|}{\text{gross\_exposure}}$$
+
+where $\text{gross\_exposure} = \sum_t |w_t|$.
+
+Using absolute weights ensures the metric is meaningful for long/short portfolios — both long and short positions contribute proportionally to sector concentration.
+
+### Graceful degradation
+
+If Data Service is unreachable (connection error, timeout, 503), the check returns a single **warning** violation (`"Sector data unavailable; cannot verify sector concentration constraints"`) instead of failing with 500. This allows the pre-trade check to complete with other constraints even when sector data is temporarily unavailable.
 
 ## VaR calculation (for max_var_pct)
 
@@ -49,12 +72,12 @@ Each constraint is optional (null = not checked). If present, a violation is app
 
 ## Data quality (response)
 
-- **`data_quality`** (optional): `tickers_requested`, `tickers_with_data`, `tickers_missing`, `total_dates`, `dates_dropped`. Indicates how many tickers had history, how many dates were used after alignment, and how many were dropped — useful to interpret VaR when series lengths differ.
+- **`data_quality`** (optional): `tickers_requested`, `tickers_with_data`, `tickers_missing`, `total_dates`, `dates_dropped`. Indicates how many tickers had history, how many dates were used after alignment, and how many were dropped — useful to interpret VaR when series lengths differ. May also contain `tickers_without_sector` — list of tickers for which sector metadata was unavailable.
 
 ## Verdict logic
 
 - **fail:** At least one violation with severity **error**.
-- **warning:** No errors, but at least one **warning** (e.g. sector concentration not implemented, or VaR unavailable).
+- **warning:** No errors, but at least one **warning** (e.g. sector data unavailable, or VaR unavailable).
 - **pass:** No violations.
 
 ## Result hash (ERC-8004)

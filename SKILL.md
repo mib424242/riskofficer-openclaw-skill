@@ -684,7 +684,9 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/pre-trade-check" \
       "weight_bound_upper": 0.25,
       "weight_bound_lower": -0.15,
       "max_gross_exposure": 2.0,
-      "max_net_exposure": 0.5
+      "max_net_exposure": 0.5,
+      "max_sector_concentration": 0.35,
+      "sector_limits": {"Energy": 0.30, "Finance": 0.25}
     }
   }'
 ```
@@ -697,6 +699,8 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/pre-trade-check" \
   - `max_var_pct`: maximum allowed VaR as % (e.g. 5.0 = 5%)
   - `weight_bound_upper` / `weight_bound_lower`: per-position weight limits
   - `max_gross_exposure` / `max_net_exposure`: exposure limits
+  - `max_sector_concentration`: global maximum sector weight (e.g. 0.35 = no single sector above 35%). Sector data is fetched from Data Service. If Data Service is unavailable, a warning is returned instead of an error.
+  - `sector_limits`: per-sector max weight as `{sector_name: max_weight}` (e.g. `{"Energy": 0.30}`). Case-insensitive matching. Can be used together with `max_sector_concentration`.
 
 **Response (synchronous, no polling):**
 ```json
@@ -713,6 +717,11 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/pre-trade-check" \
     "short_exposure": 0.08
   },
   "constraint_violations": [],
+  "sector_exposures": {
+    "Energy": 0.488889,
+    "Finance": 0.333333,
+    "Other": 0.177778
+  },
   "result_hash": "0x...",
   "data_quality": {
     "tickers_requested": 4,
@@ -723,7 +732,9 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/risk/pre-trade-check" \
   }
 }
 ```
-**`data_quality`** (optional): `tickers_requested`, `tickers_with_data`, `tickers_missing`, `total_dates`, `dates_dropped` — reflects alignment of historical data used for VaR (inner-join by date; no zero-fill).
+**`sector_exposures`** (optional, present when `max_sector_concentration` or `sector_limits` is set): maps sector name to its share of gross exposure. Formula: `sector_exposure[s] = sum(abs(w[t]) for t in sector) / gross_exposure`. For long/short portfolios, `abs(weight)` is used so both long and short contribute proportionally.
+
+**`data_quality`** (optional): `tickers_requested`, `tickers_with_data`, `tickers_missing`, `total_dates`, `dates_dropped` — reflects alignment of historical data used for VaR (inner-join by date; no zero-fill). May also include `tickers_without_sector` if sector metadata was unavailable for some tickers.
 
 **`verdict`:** `"pass"` (all OK), `"fail"` (hard constraint violations), `"warning"` (soft issues)
 
