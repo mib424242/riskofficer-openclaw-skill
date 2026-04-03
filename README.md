@@ -165,8 +165,8 @@ MIT
 
 **Security:** This skill contains only Markdown and documented API examples (curl). No executables or scripts — compatible with ClawHub/VirusTotal scanning.
 
-**Skill v4.3.0 — Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Currency: RUB/USD only, CBR rates.**
+**Scope disclaimer: virtual portfolios, analysis and research only; no real broker orders. Currency: RUB/USD only, CBR rates.**
 
 ---
 
-**Synced from riskofficer backend v1.16.3**
+**Skill v4.3.1 — synced from riskofficer backend v1.16.4**
