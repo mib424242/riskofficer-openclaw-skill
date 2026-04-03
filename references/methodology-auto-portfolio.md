@@ -16,14 +16,29 @@ This document describes how **automatic portfolio generation** works in RiskOffi
 - **Covariance:** **Ledoit–Wolf** shrinkage estimator is used to stabilize the sample covariance matrix (important for small samples and many assets). Implemented in Data Service as `sklearn.covariance.LedoitWolf().fit(log_returns)`; the fitted covariance matrix is returned and passed to ComputeService for optimization.
 - **Universe:** The backend requests universe stats and market data for the chosen universe; Data Service returns historical returns, covariance, expected returns, prices, lot sizes, and optional cluster information.
 
+## Generation Modes
+
+Auto-generate supports three **generation modes** that control whether the resulting portfolio can include short positions:
+
+### `long_only` (default)
+All weights are non-negative. This is the classic long-only portfolio construction. Weight bounds: `[min_weight, max_weight]` where `min_weight >= 0`. Sum of weights = 1.
+
+### `market_neutral`
+Both long and short positions are allowed. The net exposure constraint is set to zero: `sum(weights) = 0`. Weight bounds: `[-max_weight, max_weight]`. This produces a portfolio that is hedged against systematic market risk.
+
+### `unconstrained`
+Both long and short positions are allowed without a net-exposure constraint. Weight bounds: `[min_weight, max_weight]` where `min_weight` can be negative (default -0.25). Sum of weights = 1.
+
+The `generation_mode` is passed as part of `constraints` in the auto-generate request body. PodPlatform agents can select the mode dynamically alongside the strategy profile.
+
 ## Strategies (ComputeService construct_portfolio)
 
-Three strategies are implemented in `ConstructPortfolioService`:
+Three strategies are implemented in `ConstructPortfolioService`, each supporting all three generation modes:
 
 ### 1. Max Sharpe (`max_sharpe`)
 
-- **Primary:** **skfolio** `MeanRisk` with `ObjectiveFunction.MAXIMIZE_RATIO` (maximize Sharpe with a risk-free rate). Fitted on the historical returns matrix; min/max weights and daily risk-free rate are passed.
-- **Fallback:** If MeanRisk fails or returns invalid weights, we fall back to **ERC (Equal Risk Contribution)** using the same covariance matrix and long-only bounds (see `methodology-risk-parity.md`).
+- **Primary:** **skfolio** `MeanRisk` with `ObjectiveFunction.MAXIMIZE_RATIO` (maximize Sharpe with a risk-free rate). Fitted on the historical returns matrix; bounds are derived from `generation_mode`.
+- **Fallback:** If MeanRisk fails or returns invalid weights, we fall back to **ERC (Equal Risk Contribution)** using the same covariance matrix and mode-appropriate bounds (see `methodology-risk-parity.md`).
 
 ### 2. Hierarchical Risk Parity (`hrp`)
 
@@ -35,14 +50,14 @@ Three strategies are implemented in `ConstructPortfolioService`:
 
 - **Two-stage:**  
   1. **Warm start:** Max Sharpe (same as above); if it fails, use equal weights.  
-  2. **Refinement:** SLSQP optimization to maximize Calmar ratio (CAGR / |Max Drawdown|) using historical log-returns; long-only, sum of weights = 1.
+  2. **Refinement:** SLSQP optimization to maximize Calmar ratio (CAGR / |Max Drawdown|) using historical log-returns; bounds and net-exposure constraint from `generation_mode`.
 - **Fallback:** If the Calmar step fails, we return the Max Sharpe weights and set `fallback_used: "max_sharpe"`.
 - See `methodology-calmar.md`.
 
 ## Position sizing and rounding
 
-- After optimization, weights are converted to **positions** (quantities and values) using current prices and **lot sizes**. Residual cash is reported.
-- **Metrics:** Sharpe, volatility, max drawdown, etc., are computed from the same historical returns and final weights.
+- After optimization, weights are converted to **positions** (quantities and values) using current prices and **lot sizes**. Negative weights produce SHORT positions with negative quantity. Residual cash is reported.
+- **Metrics:** Sharpe, volatility, max drawdown, etc., are computed from the same historical returns and final weights. `portfolio_type` is classified dynamically: `LONG_ONLY`, `LONG_SHORT`, `MARKET_NEUTRAL`, or `FULLY_SHORT`.
 
 ## Apply step
 

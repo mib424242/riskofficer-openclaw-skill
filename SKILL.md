@@ -667,6 +667,56 @@ curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/optimize-bl" \
 
 ---
 
+### Auto Portfolio Generation (QUANT — currently free for all users)
+
+#### Generate Portfolio
+When the user asks to automatically create/generate a portfolio:
+
+```bash
+curl -s -X POST "https://api.riskofficer.tech/api/v1/portfolio/auto-generate" \
+  -H "Authorization: Bearer ${RISK_OFFICER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "currency": "RUB",
+    "amount": 500000,
+    "strategy": "max_sharpe",
+    "constraints": {
+      "max_weight": 0.25,
+      "min_assets": 5,
+      "max_assets": 25,
+      "generation_mode": "long_only"
+    }
+  }'
+```
+
+**Parameters:**
+- `currency` (required): `"RUB"` or `"USD"`
+- `amount` (required): investment amount
+- `strategy` (required): `"max_sharpe"`, `"hrp"`, or `"max_calmar"`
+- `constraints` (optional):
+  - `max_weight`: max weight per asset (default 0.25)
+  - `min_assets` / `max_assets`: min/max number of assets (default 5/25)
+  - `exclude_tickers`: array of tickers to exclude
+  - `generation_mode`: `"long_only"` (default), `"market_neutral"`, or `"unconstrained"`
+
+**`generation_mode`:**
+- `"long_only"`: all weights >= 0 (classic long-only portfolio)
+- `"market_neutral"`: long + short positions with net exposure = 0 (hedged)
+- `"unconstrained"`: weights can be positive or negative freely
+
+**Response:** `optimization_id`, `status: "pending"`. Poll via `GET /portfolio/optimizations/{id}`, result via `GET /portfolio/optimizations/{id}/result`.
+
+**Result contains:** `portfolio.positions` (with `direction`: `LONG` or `SHORT`), `metrics` (sharpe, volatility, max_drawdown, portfolio_type), `selection_reasoning`.
+
+**Apply:** `POST /portfolio/optimizations/{id}/apply` — creates a new portfolio. Ask for confirmation first.
+
+**User prompt examples:**
+- "Generate a portfolio for 500k rubles" → `strategy: "max_sharpe"`, `generation_mode: "long_only"`
+- "Create a market-neutral portfolio" → `generation_mode: "market_neutral"`
+- "Build a long-short portfolio with Max Calmar" → `strategy: "max_calmar"`, `generation_mode: "unconstrained"`
+
+---
+
 ### Pre-Trade Check (FREE)
 
 #### Run Pre-Trade Risk Check
